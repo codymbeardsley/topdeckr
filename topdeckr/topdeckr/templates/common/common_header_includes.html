@@ -1,0 +1,15 @@
+<!-- Javascript Here -->
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+<script src="{{ STATIC_URL }}js/gatherer_helper.js"></script>
+<script type="text/javascript">
+	$().ready(function() {
+		$('#card_name').keyup(function(){
+			$('#card_image').attr("src", getWizardsSrc($('#card_name').val()));
+			$('#card_display_name').val($('#card_name').val());
+		})
+	})
+	
+</script>
+
+<!-- CSS Here -->
+<link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}css/main.css" />
