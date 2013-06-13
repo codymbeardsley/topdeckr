@@ -3,11 +3,20 @@
 <script src="{{ STATIC_URL }}js/gatherer_helper.js"></script>
 <script type="text/javascript">
 	$().ready(function() {
-		$('#card_name').keyup(function(){
+		/*$('#card_name').keyup(function(){
 			$('#card_image').attr("src", getWizardsSrc($('#card_name').val()));
 			$('#card_display_name').val($('#card_name').val());
-		})
-	})
+		})*/
+		
+		$("#card_name").keyup(function(){
+			var url = "http://daccg.com/ajax_ccgsearch.php?"+$("#card_name").val();
+			alert('test');
+			$.ajax({url: url,
+			type: 'GET',
+			crossDomain: true,
+			success: function(data){ alert('test'); $('#card_display_name').html(data); }});
+	});
+});
 	
 </script>
 
