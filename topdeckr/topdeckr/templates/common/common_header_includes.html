@@ -9,14 +9,13 @@
 		})*/
 		
 		$("#card_name").keyup(function(){
-			var url = "http://daccg.com/ajax_ccgsearch.php?"+$("#card_name").val();
-			alert('test');
+			var url = "http://127.0.0.1:8000/getcard/";
 			$.ajax({url: url,
-			type: 'GET',
-			crossDomain: true,
-			success: function(data){ alert('test'); $('#card_display_name').html(data); }});
+			data: {name: $("#card_name").val()},
+                        type: 'POST',
+                        success: function(data){ alert(JSON.stringify(data)); },});
+		});
 	});
-});
 	
 </script>
 

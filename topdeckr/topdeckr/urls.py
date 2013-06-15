@@ -6,6 +6,7 @@ from django.conf.urls import patterns, include, url
 
 urlpatterns = patterns('',
 	url(r'^$', 'common.views.index'),
+	url(r'^getcard/$', 'gatherer.views.get_card'),
     # Examples:
     # url(r'^$', 'topdeckr.views.home', name='home'),
     # url(r'^topdeckr/', include('topdeckr.foo.urls')),
