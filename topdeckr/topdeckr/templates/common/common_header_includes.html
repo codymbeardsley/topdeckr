@@ -3,19 +3,35 @@
 <script src="{{ STATIC_URL }}js/gatherer_helper.js"></script>
 <script type="text/javascript">
 	$().ready(function() {
-		/*$('#card_name').keyup(function(){
-			$('#card_image').attr("src", getWizardsSrc($('#card_name').val()));
-			$('#card_display_name').val($('#card_name').val());
-		})*/
-		
 		$("#card_name").keyup(function(){
-			var url = "http://127.0.0.1:8000/getcard/";
-			$.ajax({url: url,
-			data: {name: $("#card_name").val()},
-                        type: 'POST',
-                        success: function(data){ alert(JSON.stringify(data)); },});
+			// Set Timeout
+   			clearTimeout($.data(this, 'timer'));
+
+			// Set Search String
+		    	var search_string = $(this).val();
+
+		    	// Do Search
+		    	if (search_string == '') {}
+			else
+				$(this).data('timer', setTimeout(search, 100));
 		});
 	});
+	function search()
+	{	
+		var url = "http://127.0.0.1:8000/getcard/";
+		var search_value = $('#card_name').val();
+		if(search_value !== '')
+			$.ajax({url: url,
+				data: {name: $("#card_name").val()},
+				type: 'POST',
+				cache: false,
+				success: function(data){ 
+					if(data['error'] != "CARD_NOT_FOUND")
+						alert(JSON.stringify(data)); 
+					},
+			});
+		return false;
+	}
 	
 </script>
 

@@ -1,6 +1,31 @@
 # Django settings for topdeckr project.
 import os
 
+#When parsing cards from the gatherer, which keywords should we accept?
+ACCEPTED_KEYWORD_ABILITIES = ("Deathtouch",
+				"Defender",     
+				"Double strike",
+				"Enchant",      
+				"Equip",
+				"Exalted",
+				"First strike", 
+				"Flash",
+				"Flying",
+				"Haste",
+				"Hexproof",     
+				"Indestructible",
+				"Infect",
+				"Intimidate",   
+				"Landwalk",
+				"Lifelink",
+				"Protection",
+				"Reach",
+				"Shroud",
+				"Trample",
+				"Vigilance",)
+
+
+
 DEBUG = True
 TEMPLATE_DEBUG = DEBUG
 
@@ -14,10 +39,10 @@ MANAGERS = ADMINS
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.', # Add 'postgresql_psycopg2', 'mysql', 'sqlite3' or 'oracle'.
-        'NAME': '',                      # Or path to database file if using sqlite3.
-        'USER': '',                      # Not used with sqlite3.
-        'PASSWORD': '',                  # Not used with sqlite3.
+        'ENGINE': 'django.db.backends.mysql', # Add 'postgresql_psycopg2', 'mysql', 'sqlite3' or 'oracle'.
+        'NAME': 'topdeckr_local',                      # Or path to database file if using sqlite3.
+        'USER': 'root',                      # Not used with sqlite3.
+        'PASSWORD': 'sp1xLL09',                  # Not used with sqlite3.
         'HOST': '',                      # Set to empty string for localhost. Not used with sqlite3.
         'PORT': '',                      # Set to empty string for default. Not used with sqlite3.
     }
