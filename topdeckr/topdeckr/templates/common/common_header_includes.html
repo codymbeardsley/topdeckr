@@ -27,7 +27,8 @@
 				cache: false,
 				success: function(data){ 
 					if(data['error'] != "CARD_NOT_FOUND")
-						alert(JSON.stringify(data)); 
+						$('#card_display_name').html(data['name']);
+						$("#card_image").attr('src', getWizardsSrc(data['name']));
 					},
 			});
 		return false;
