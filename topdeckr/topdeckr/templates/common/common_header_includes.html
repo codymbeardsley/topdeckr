@@ -18,22 +18,31 @@
 	});
 	function search()
 	{	
-		var url = "http://127.0.0.1:8000/getcard/";
 		var search_value = $('#card_name').val();
 		if(search_value !== '')
-			$.ajax({url: url,
-				data: {name: $("#card_name").val()},
-				type: 'POST',
-				cache: false,
-				success: function(data){ 
-					if(data['error'] != "CARD_NOT_FOUND")
-						$('#card_display_name').html(data['name']);
-						$("#card_image").attr('src', getWizardsSrc(data['name']));
-					},
-			});
+		{
+			ajaxRequest('getcard', {'query': search_value}, handleGetCardData);
+		}
 		return false;
 	}
-	
+	function ajaxRequest(operation, data, handler){	
+		$.ajax({url: "/request/" + operation + "/",
+			data:data,
+			type: 'POST',
+			cache: false,
+			success: handler});
+	}
+		
+	function handleGetCardData(data){ 
+		if(data['error'] != "CARD_NOT_FOUND"){
+			var card_html = '';
+			card_html = "<img class='image'src='" + getWizardsSrc(data['name'])  + "'>";
+			for(card_property in data){
+				card_html += "<div class='property'><label>" + card_property + "</label><span class='" + card_property + "'>" + data[card_property] + "</span></div>";
+			}	
+			$('#right-panel .card-display').html(card_html);
+		}
+	}
 </script>
 
 <!-- CSS Here -->

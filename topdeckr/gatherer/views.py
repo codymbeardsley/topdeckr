@@ -7,14 +7,26 @@ from gatherer.api import CardDatabase
 from django.views.decorators.csrf import csrf_exempt
 from re import escape
 
-@csrf_exempt
-def get_card(request):
-	if request.is_ajax():
-		gatherer = CardDatabase()
-		result = gatherer.online_lookup(request.POST['name'])
-		if result == "CARD_NOT_FOUND":
-			return HttpResponse(simplejson.dumps({"error": "CARD_NOT_FOUND"}), mimetype="application/json")
-		else:
-			return HttpResponse(simplejson.dumps(result), mimetype="application/json")
-	else:
-		return HttpResponse(simplejson.dumps("error"), mimetype="application/json")
+from rest_framework.response import Response
+from rest_framework.decorators import api_view
+from rest_framework import status
+
+def getCard(**data):
+    gatherer = CardDatabase()
+    result = gatherer.online_lookup(**data)
+    if result == "CARD_NOT_FOUND":
+        return {"error": "CARD_NOT_FOUND"}
+    else:
+        return result
+
+@api_view(['POST'])
+def gathererRequest(request, operation):
+    data = {}
+    try:
+        data = request.POST
+    except:
+        pass
+
+    if operation == "getcard":
+        return Response(getCard(**data))
+

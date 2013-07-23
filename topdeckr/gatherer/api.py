@@ -31,7 +31,7 @@ class CardDatabase(object):
 
     def online_lookup(self, query, only_return_name=False):
         self.only_return_name = only_return_name
-        query = str(query)
+        query = str(query[0])
         self.query = query
         gatherer_id = re.compile(r'\d+')
         if not gatherer_id.match(query):
@@ -47,7 +47,6 @@ class CardDatabase(object):
         try:
             entry_query = get_query(query_string, ['name'])
             found_entries = Card.objects.filter(entry_query).order_by('-name')
-            print found_entries
             return found_entries[0]
         except:
             return None
@@ -138,7 +137,7 @@ class CardDatabase(object):
                 elif power_toughness_regex.search(div_id):
                     match = div.getchildren()[1].text.split("/")
                     card_data['power'] = match[0].strip() 
-                    card_data['toughness'] = match[1].strip()
+                    card_data['toughness'] = match[1].strip() 
                 elif mana_regex.search(div_id):
                     processed_mana = self.process_mana(lxml.etree.tostring(div.getchildren()[1]))
                     card_data['mana_cost'] = processed_mana['mana_cost']
@@ -157,7 +156,7 @@ class CardDatabase(object):
                         continue
                     else:
                         break
-
+        print card_data
         return card_data
 
     def process_mana(self, raw_html):
@@ -192,7 +191,7 @@ class CardDatabase(object):
             for img in text_area.findAll("img"):
                 symbol = self.process_symbol(img.get('alt'))
                 img.replaceWith(symbol + ' ')
-            card_text += text_area.renderContents() + '\n'
+            card_text += text_area.renderContents() + '<br/>'
             keyword_abilities_preprocessed = text_area.renderContents().split(',')
             #Compare the Keywords in the settings file to cleaned Keywords we have here
             for keyword in keyword_abilities_preprocessed:
