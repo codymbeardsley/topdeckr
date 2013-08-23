@@ -54,7 +54,10 @@ h1 { font-size:24px; font-weight:bold; font-family:'Arial',Georgia,Serif;}
 
 #site-container { position:absolute; top:40px; height:100%; } 
 #site-container > #right-panel { position:fixed; top:40px; right:0; width:200px; background:#EEE; box-shadow:0 0 5px #666; overflow:auto; }
-.card-display > .property  { float:left; width:96px; min-height:96px; margin:2px; background:#FFF; box-shadow:0 0 5px #999; overflow:hidden; }
-.card-display > .property > label { font-size:12px; height:15px; padding:5px; width:100%; display:block; color:#FFF; background:#66A3D2; text-transform:capitalize; font-weight:bold; }
-.card-display > .property > span { font-size:11px; }
-.card-display > .property > span.power { width:70px; height: 40px; margin:auto; color:#66A3D2; font-size:36px; } 
+.card-display > .property  { width:100%; min-height:15px; margin:2px 0 0 0; background:#FFF; box-shadow:0 0 5px #999; }
+.card-display > .property > label { font-size:12px; height:15px; float:left; width:40%; display:block; color:#FFF; background:#66A3D2; text-transform:capitalize; font-weight:bold; }
+.card-display > .property > div { font-size:11px; }
+.card-display > .property > div.power { color:#66A3D2; }
+.card-display > .property > div.text {  }
+.card-display > .property > label.text { float:none;  width:100%;  }
+

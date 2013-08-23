@@ -65,7 +65,10 @@ class CardDatabase(object):
             url = url + urllib.urlencode([('name', '["' + name + '"]'),])
             xml = self._get_response_object(url)
             cached_card = Card(**self._parse_gatherer_xml(xml.read()))
-            cached_card.save()
+            try:
+                cached_card.save()
+            except:
+                pass
             cached_card = cached_card.toDict()
             if self.only_return_name:
                 return {'name': cached_card['name']}
@@ -112,15 +115,12 @@ class CardDatabase(object):
         power_toughness_regex = re.compile(r'ptRow$')
         type_regex = re.compile(r'typeRow$')
         mana_regex = re.compile(r'manaRow$')
-
         card_data = {}
 
         form = tree.findall(".//{http://www.w3.org/1999/xhtml}form")[0]
         card_data['gatherer_id'] = gatherer_id_regex.search(form.get('action')).group(1)
-
         for div in tree.findall(".//{http://www.w3.org/1999/xhtml}div"):
             div_id = div.get('id')
-
             if div_id is not None:
                 if name_regex.search(div_id):
                     card_data['name'] = div.getchildren()[1].text.strip()
@@ -135,17 +135,21 @@ class CardDatabase(object):
                 elif current_set_regex.search(div_id):
                     card_data['expansion'] = div.getchildren()[1].text
                 elif power_toughness_regex.search(div_id):
-                    match = div.getchildren()[1].text.split("/")
-                    card_data['power'] = match[0].strip() 
-                    card_data['toughness'] = match[1].strip() 
+                    try:
+                        match = div.getchildren()[1].text.split("/")
+                        card_data['power'] = match[0].strip() 
+                        card_data['toughness'] = match[1].strip() 
+                    except:
+                        pass
                 elif mana_regex.search(div_id):
                     processed_mana = self.process_mana(lxml.etree.tostring(div.getchildren()[1]))
                     card_data['mana_cost'] = processed_mana['mana_cost']
                     card_data['converted_mana_cost'] = processed_mana['converted_mana_cost']
                 elif text_regex.search(div_id):
                     match = self.process_text(lxml.etree.tostring(div.getchildren()[1]))
-                    card_data['keyword_abilities'] = match['keywords']
-                    card_data['text'] = match['text']
+                    if(len(match)):
+                        card_data['keyword_abilities'] = match['keywords']
+                        card_data['text'] = match['text']
                 elif rarity_regex.search(div_id):
                     card_data['rarity'] = div.getchildren()[1].getchildren()[0].text.lower()
                     #Whichever cardfield is parsed last MUST have this
@@ -156,7 +160,6 @@ class CardDatabase(object):
                         continue
                     else:
                         break
-        print card_data
         return card_data
 
     def process_mana(self, raw_html):

@@ -15,17 +15,17 @@ class Card(models.Model):
 	text = models.TextField(null=True)
 	
 	def toDict(self):
-		return {'gatherer_id': self.gatherer_id, 
+		return {'gid': self.gatherer_id, 
 			'name': self.name,
 			'power': self.power,
 			'toughness': self.toughness,
 			'type': self.type,
-			'sub_type': self.sub_type,
+			'subtype': self.sub_type,
 			'expansion': self.expansion, 
-			'mana_cost': self.mana_cost,
-			'converted_mana_cost': self.converted_mana_cost,
+			'mana cost': self.mana_cost,
+			'cmc': self.converted_mana_cost,
 			'rarity': self.rarity,
-			'keyword_abilities': self.keyword_abilities,
+			'abilities': self.keyword_abilities,
 			'text': self.text,} 
 
 # Create your models here.

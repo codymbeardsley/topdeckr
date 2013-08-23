@@ -32,13 +32,12 @@
 			cache: false,
 			success: handler});
 	}
-		
 	function handleGetCardData(data){ 
 		if(data['error'] != "CARD_NOT_FOUND"){
 			var card_html = '';
 			card_html = "<img class='image'src='" + getWizardsSrc(data['name'])  + "'>";
 			for(card_property in data){
-				card_html += "<div class='property'><label>" + card_property + "</label><span class='" + card_property + "'>" + data[card_property] + "</span></div>";
+				card_html += "<div class='property'><label class='" + card_property + "'>" + card_property + "</label><div class='" + card_property + "'>" + data[card_property] + "</div></div>";
 			}	
 			$('#right-panel .card-display').html(card_html);
 		}
