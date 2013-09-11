@@ -13,11 +13,20 @@ from rest_framework import status
 
 def getCard(**data):
     gatherer = CardDatabase()
-    result = gatherer.online_lookup(**data)
+    result = gatherer.getAllCards()
     if result == "CARD_NOT_FOUND":
-        return {"error": "CARD_NOT_FOUND"}
+        return {"status": "error", "message": "Card not found."}
     else:
         return result
+
+def populateDatabase():
+    gatherer = CardDatabase()
+    result = gatherer.getAllCards()
+
+def searchCard(**data):
+    gatherer = CardDatabase()
+    result = gatherer.searchCard(**data)
+    return result
 
 @api_view(['POST'])
 def gathererRequest(request, operation):
@@ -30,3 +39,8 @@ def gathererRequest(request, operation):
     if operation == "getcard":
         return Response(getCard(**data))
 
+    if operation == "populatedatabase":
+        return Response(populateDatabase())
+
+    if operation == "searchcard":
+        return Response(searchCard(**data))

@@ -1,208 +1,129 @@
 # -*- coding: utf-8 -*-
-import md5
 import os
 import urllib
-import urllib2
 import re
-import lxml.etree
-import BeautifulSoup
+from BeautifulSoup import BeautifulSoup
+from BeautifulSoup import NavigableString
+import requests
 from topdeckr.settings import ACCEPTED_KEYWORD_ABILITIES
 from gatherer.search import get_query
-from gatherer.models import Card
+from gatherer.models import Card, Set
+from django.core import serializers
 CACHE_PATH = os.path.join(os.path.dirname(__file__), 'cache')
 
 class CardDatabase(object):
-    LAND_TO_GATHERER_ID = {
-        'forest': '174928',
-        'swamp': '197258',
-        'island': '190588',
-        'plains': '197255',
-        'mountain': '190586',
-    }
 
-    def __init__(self, *kwargs):
-        self.cache = []
-
-    def __del__(self):
-        import os
-
-        for path in self.cache:
-            os.remove(path)
-
-    def online_lookup(self, query, only_return_name=False):
-        self.only_return_name = only_return_name
-        query = str(query[0])
-        self.query = query
-        gatherer_id = re.compile(r'\d+')
-        if not gatherer_id.match(query):
-            if query.lower() in CardDatabase.LAND_TO_GATHERER_ID.keys():
-                return self.online_lookup(CardDatabase.LAND_TO_GATHERER_ID[query.lower()])
-            else:
-                return self.online_lookup_by_name(query)
-        else:
-            return self.online_lookup_by_id(query)
-
-    def _check_for_cached_query(self, query_string):
-        found_entries = None
-        try:
-            entry_query = get_query(query_string, ['name'])
-            found_entries = Card.objects.filter(entry_query).order_by('-name')
-            return found_entries[0]
-        except:
-            return None
-
-    def _get_response_object(self, url):
-        request = urllib2.Request(url=url)
-        request.add_header('user-agent', 'Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10_5_6; en-gb) AppleWebKit/528.16 (KHTML, like Gecko) Version/4.0 Safari/528.16')
-        xml = urllib2.urlopen(request)
-
-        return xml
-
-    def online_lookup_by_name(self, name):
-        cached_card = self._check_for_cached_query(name)
-        if cached_card is None:
-            url = "http://gatherer.wizards.com/pages/search/default.aspx?"
-            url = url + urllib.urlencode([('name', '["' + name + '"]'),])
-            xml = self._get_response_object(url)
-            cached_card = Card(**self._parse_gatherer_xml(xml.read()))
+    URL_BASE = 'http://magiccards.info'
+    TEST_MODE = False
+    def getAllCards(self):
+        set_list = self.getAllSets()
+        for set in set_list:
             try:
-                cached_card.save()
+                self.getAllCardsInSet(set['code'])
             except:
                 pass
-            cached_card = cached_card.toDict()
-            if self.only_return_name:
-                return {'name': cached_card['name']}
+    
+    def getAllSets(self):
+        print 'Retrieving Card Sets...'
+        req = requests.get(self.URL_BASE + '/sitemap.html')
+        soup = BeautifulSoup(req.content)
+        en_anchor = soup.find('a', {'name': 'en'})
+        en_table = en_anchor.findNext('table')
+        en_set_html = en_table.findAll('a')
+        sets = []
+        for set in en_set_html:
+            set_data = {
+                'name': set.text,
+                'code': set.parent.find('small').text,
+                'link': set['href']}
+            set_object = Set(**set_data)
+            if not self.TEST_MODE:
+                set_object.save()
+            sets.append(set_data)
+            print 'Added ' + set_object.name
+        return sets
+
+    def getAllCardsInSet(self, setcode):
+        query_parameters = {'q': '++e:' + setcode + '/en',
+                            'v': 'spoiler',
+                            's': 'issue'}
+        query = '/query?' + urllib.urlencode(query_parameters)
+        request = requests.get(self.URL_BASE + query)
+        soup = BeautifulSoup(request.content)
+        cards_raw_data = soup.findAll('span')
+        for card_raw_data in cards_raw_data:
+            card_data = {}
+            card_data['name'] = card_raw_data.text
+            card_text_line = card_raw_data.findNextSibling('p', {'class':
+                                                                    'ctext'})
+            card_type_and_cost_line = card_text_line.findPreviousSibling('p')
+            card_rarity_line = card_type_and_cost_line.findPreviousSibling('p')
+            card_flavor_text_line = card_text_line.findNextSibling('p')
+            card_art_line = card_flavor_text_line.findNextSibling('p')
+            card_data['rarity'] = unicode(card_rarity_line.findNext('i').text) if card_rarity_line else u'Special'
+            card_data['flavor_text'] = unicode(card_flavor_text_line.text)
+            card_data['artist'] = unicode(card_art_line.text).replace('Illus. ', '')
+            card_data['text'] = [rl for rl in card_text_line.find('b').contents if isinstance(rl, NavigableString)]
+            card_data['expansion'] = setcode
+            
+            card_keyword_abilities = []
+            for card_text_area in card_data['text']:
+                keyword_abilities_preprocessed = card_text_area.split(',')
+                for keyword in keyword_abilities_preprocessed:
+                    keyword = keyword.strip().lower().capitalize()
+                    if keyword in ACCEPTED_KEYWORD_ABILITIES:
+                        card_keyword_abilities.append(keyword)
+            card_data['keyword_abilities'] = card_keyword_abilities
+
+            card_type_line, card_cost_line = [l.strip() for l in
+                                              card_type_and_cost_line.text.split(',')]
+            card_types = card_type_line.split()
+            if '/' in card_types[-1]:
+                card_data['power'], card_data['toughness'] = card_types[-1].split('/')
+                card_types = card_types[:-1]
+            if card_data['name'] == u'1996 World Champion':
+                card_data['type'] = [u'Legendary', u'Creature']
+                card_data['sub_type'] = []
+            elif card_data['name'] == u'Shichifukujin Dragon':
+                card_data['type'] = [u'Creature']
+                card_data['sub_type'] = [u'Dragon']
+            elif card_data['name'] == u'Old Fogey':
+                card_data['type'] = ['Creature']
+                card_data['sub_type'] = ['Dinosaur']
+            elif u'Enchant' in card_types:
+                card_data['type'] = [u'Enchantment']
+                card_data['sub_type'] = [u'Aura']
+            elif u'\u2014' in card_types:
+                i = card_types.index(u'\u2014')
+                card_data['type'] = card_types[:i]
+                card_data['sub_type'] = card_types[i + 1:]            
             else:
-                return cached_card
-        else:
-            cached_card = cached_card.toDict()
-            if self.only_return_name:
-                 return {'name': cached_card['name']}
+                card_data['type'] = card_types
+            if 'card_type' in card_data:
+                if u'Legend' in card_data['sub_type']:
+                    card_data['sub_type'].remove(u'Legend')
+                    card_data['type'].append(u'Legendary')
+                if u'(Loyalty:' in card_data['sub_type']:
+                    i = card_data['sub_type'].index(u'(Loyalty:')
+                    card_data['loyalty'] = int(card_data['sub_type'][i + 1].strip(')'))
+                    card_data['sub_type'] = card_data['sub_type'][:i]
+            if card_cost_line == u'':
+                card_data['mana_cost'], card_data['converted_mana_cost'] = ('', 0)
+            elif '(' in card_cost_line:
+                card_data['mana_cost'], card_data['converted_mana_cost'] = card_cost_line.split()
+                card_data['converted_mana_cost'] = int(card_data['converted_mana_cost'].strip('()'))
             else:
-                 return cached_card
+                card_data['mana_cost'], card_data['converted_mana_cost'] = (card_cost_line, 0)
+            card_object = Card(**card_data)
+            print 'Processing ' + card_object.name
+            if not self.TEST_MODE:
+                card_object.save()
+        return None
 
-
-    def online_lookup_by_id(self, gatherer_id):
-        cached_file = self._check_for_cached_query(gatherer_id)
-        if cached_file is None:
-            url = "http://gatherer.wizards.com/Pages/Card/Details.aspx?"
-            url = url + urllib.urlencode([('multiverseid', gatherer_id),])
-
-            xml = self._get_response_object(url)
-            cached_filename = name + repr(self)
-            cached_filename = md5.new(cached_filename).hexdigest() + '.txt'
-
-            cached_filename = os.path.join(CACHE_PATH, cached_filename)
-            f = open(cached_filename, 'w')
-            f.write(xml.read())
-            f.close()
-
-            self.cache.append(cached_filename)
-
-            cached_file = open(cached_filename, 'r')
-
-        return self._parse_gatherer_xml(cached_file)
-
-    def _parse_gatherer_xml(self, xml):
-        parser = lxml.etree.XMLParser(recover=True)
-        tree = lxml.etree.fromstring(xml, parser)
-        
-        gatherer_id_regex = re.compile(r'\?multiverseid=(\d*)$')
-        name_regex = re.compile(r'nameRow$')
-        rarity_regex = re.compile(r'rarityRow$')
-        current_set_regex = re.compile(r'currentSetSymbol$')
-        text_regex = re.compile(r'textRow$')
-        power_toughness_regex = re.compile(r'ptRow$')
-        type_regex = re.compile(r'typeRow$')
-        mana_regex = re.compile(r'manaRow$')
-        card_data = {}
-
-        form = tree.findall(".//{http://www.w3.org/1999/xhtml}form")[0]
-        card_data['gatherer_id'] = gatherer_id_regex.search(form.get('action')).group(1)
-        for div in tree.findall(".//{http://www.w3.org/1999/xhtml}div"):
-            div_id = div.get('id')
-            if div_id is not None:
-                if name_regex.search(div_id):
-                    card_data['name'] = div.getchildren()[1].text.strip()
-                elif type_regex.search(div_id):
-                    try:
-                        #Gotta' love Wizards' use of non-ascii characters
-                        match = re.split(u'\xe2\x80\x94', div.getchildren()[1].text.strip().encode('utf-8'))
-                        card_data['type'] = match[0].strip()
-                        card_data['sub_type'] = match[1].strip()
-                    except:
-                        pass
-                elif current_set_regex.search(div_id):
-                    card_data['expansion'] = div.getchildren()[1].text
-                elif power_toughness_regex.search(div_id):
-                    try:
-                        match = div.getchildren()[1].text.split("/")
-                        card_data['power'] = match[0].strip() 
-                        card_data['toughness'] = match[1].strip() 
-                    except:
-                        pass
-                elif mana_regex.search(div_id):
-                    processed_mana = self.process_mana(lxml.etree.tostring(div.getchildren()[1]))
-                    card_data['mana_cost'] = processed_mana['mana_cost']
-                    card_data['converted_mana_cost'] = processed_mana['converted_mana_cost']
-                elif text_regex.search(div_id):
-                    match = self.process_text(lxml.etree.tostring(div.getchildren()[1]))
-                    if(len(match)):
-                        card_data['keyword_abilities'] = match['keywords']
-                        card_data['text'] = match['text']
-                elif rarity_regex.search(div_id):
-                    card_data['rarity'] = div.getchildren()[1].getchildren()[0].text.lower()
-                    #Whichever cardfield is parsed last MUST have this
-                    #clause, it is to deal with flip-cards
-                    if not re.search(self.query, card_data['name'].lower()):
-                        card_data = {}
-                        card_data['gatherer_id'] = gatherer_id_regex.search(form.get('action')).group(1)
-                        continue
-                    else:
-                        break
-        return card_data
-
-    def process_mana(self, raw_html):
-        html = BeautifulSoup.BeautifulSoup(raw_html)
-        converted_mana_cost = 0
-        mana_cost = ''
-        for img in html.findAll('img'):
-            symbol = self.process_symbol(img.get('alt'))
-            if self.represents_int(symbol):
-                converted_mana_cost += int(symbol)
-            else:
-                converted_mana_cost += 1
-            mana_cost += symbol + " "
-        return {'mana_cost' : mana_cost.strip(), 'converted_mana_cost' : converted_mana_cost}
-
-    #Helper function for the mana processor
-    def represents_int(self, possible_integer):
-        try:
-            int(possible_integer)
-            return True
-        except ValueError:
-            return False
-
-    #Search through cardtext and return the keyword abilities
-    def process_text(self, raw_html):
-        html = BeautifulSoup.BeautifulSoup(raw_html)
-        text_areas = html.findAll("div", { "class" : "cardtextbox" })#Get the cardtext elements out of the html
-        #Only use the first cardtextbox(as that is where the keywords are) and split them into an array
-        keyword_abilities = []
-        card_text = ''
-        for text_area in text_areas:
-            for img in text_area.findAll("img"):
-                symbol = self.process_symbol(img.get('alt'))
-                img.replaceWith(symbol + ' ')
-            card_text += text_area.renderContents() + '<br/>'
-            keyword_abilities_preprocessed = text_area.renderContents().split(',')
-            #Compare the Keywords in the settings file to cleaned Keywords we have here
-            for keyword in keyword_abilities_preprocessed:
-                keyword = keyword.split("<")[0]#Clean helper text from keywords
-                keyword = keyword.strip().lower().capitalize()
-                if keyword in ACCEPTED_KEYWORD_ABILITIES:
-                    keyword_abilities.append(keyword)
-        return {'keywords': keyword_abilities, 'text': card_text}
+    def searchCard(self, query, field):
+        card_query = get_query(query[0], field)
+        found_cards = Card.objects.filter(card_query)
+        return serializers.serialize('json', found_cards)
 
     def process_symbol(self, symbol):
             shorthand_cost = None

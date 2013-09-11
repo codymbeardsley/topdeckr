@@ -1,5 +1,7 @@
 <!-- Javascript Here -->
+<link href="//netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap.min.css" rel="stylesheet">
 <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+<script src="//netdna.bootstrapcdn.com/bootstrap/3.0.0/js/bootstrap.min.js"></script>
 <script src="{{ STATIC_URL }}js/gatherer_helper.js"></script>
 <script type="text/javascript">
 	$().ready(function() {
@@ -21,7 +23,7 @@
 		var search_value = $('#card_name').val();
 		if(search_value !== '')
 		{
-			ajaxRequest('getcard', {'query': search_value}, handleGetCardData);
+			ajaxRequest('searchcard', {'query': search_value, 'field': 'name'}, handleCardSearchData);
 		}
 		return false;
 	}
@@ -32,7 +34,8 @@
 			cache: false,
 			success: handler});
 	}
-	function handleGetCardData(data){ 
+	function handleCardSearchData(data){
+		console.log(data);
 		if(data['error'] != "CARD_NOT_FOUND"){
 			var card_html = '';
 			card_html = "<img class='image'src='" + getWizardsSrc(data['name'])  + "'>";
