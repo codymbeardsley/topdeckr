@@ -1,50 +1,46 @@
 # -*- coding: utf-8 -*-
-import os
 import urllib
-import re
+import requests
 from BeautifulSoup import BeautifulSoup
 from BeautifulSoup import NavigableString
-import requests
 from topdeckr.settings import ACCEPTED_KEYWORD_ABILITIES
-from gatherer.search import get_query
 from gatherer.models import Card, Set
-from django.core import serializers
-CACHE_PATH = os.path.join(os.path.dirname(__file__), 'cache')
+
 
 class CardDatabase(object):
-
     URL_BASE = 'http://magiccards.info'
     TEST_MODE = False
-    def getAllCards(self):
-        set_list = self.getAllSets()
+
+    def get_all_cards(self):
+        set_list = self.get_all_sets()
         for set in set_list:
             try:
-                self.getAllCardsInSet(set['code'])
+                self.get_all_cards_in_set(set['code'])
             except:
                 pass
-    
-    def getAllSets(self):
-        print 'Retrieving Card Sets...'
+
+    def get_all_sets(self):
+        print('Retrieving Card Sets...')
         req = requests.get(self.URL_BASE + '/sitemap.html')
         soup = BeautifulSoup(req.content)
         en_anchor = soup.find('a', {'name': 'en'})
         en_table = en_anchor.findNext('table')
         en_set_html = en_table.findAll('a')
         sets = []
-        for set in en_set_html:
+        for card_set in en_set_html:
             set_data = {
-                'name': set.text,
-                'code': set.parent.find('small').text,
-                'link': set['href']}
+                'name': card_set.text,
+                'code': card_set.parent.find('small').text,
+                'link': card_set['href']}
             set_object = Set(**set_data)
             if not self.TEST_MODE:
                 set_object.save()
             sets.append(set_data)
-            print 'Added ' + set_object.name
+            print('Added ' + set_object.name)
         return sets
 
-    def getAllCardsInSet(self, setcode):
-        query_parameters = {'q': '++e:' + setcode + '/en',
+    def get_all_cards_in_set(self, set_code):
+        query_parameters = {'q': '++e:' + set_code + '/en',
                             'v': 'spoiler',
                             's': 'issue'}
         query = '/query?' + urllib.urlencode(query_parameters)
@@ -52,10 +48,9 @@ class CardDatabase(object):
         soup = BeautifulSoup(request.content)
         cards_raw_data = soup.findAll('span')
         for card_raw_data in cards_raw_data:
-            card_data = {}
+            card_data = None
             card_data['name'] = card_raw_data.text
-            card_text_line = card_raw_data.findNextSibling('p', {'class':
-                                                                    'ctext'})
+            card_text_line = card_raw_data.findNextSibling('p', {'class': 'ctext'})
             card_type_and_cost_line = card_text_line.findPreviousSibling('p')
             card_rarity_line = card_type_and_cost_line.findPreviousSibling('p')
             card_flavor_text_line = card_text_line.findNextSibling('p')
@@ -64,7 +59,7 @@ class CardDatabase(object):
             card_data['flavor_text'] = unicode(card_flavor_text_line.text)
             card_data['artist'] = unicode(card_art_line.text).replace('Illus. ', '')
             card_data['text'] = [rl for rl in card_text_line.find('b').contents if isinstance(rl, NavigableString)]
-            card_data['expansion'] = setcode
+            card_data['expansion'] = set_code
             
             card_keyword_abilities = []
             for card_text_area in card_data['text']:
@@ -114,16 +109,12 @@ class CardDatabase(object):
                 card_data['converted_mana_cost'] = int(card_data['converted_mana_cost'].strip('()'))
             else:
                 card_data['mana_cost'], card_data['converted_mana_cost'] = (card_cost_line, 0)
-            card_object = Card(**card_data)
-            print 'Processing ' + card_object.name
-            if not self.TEST_MODE:
-                card_object.save()
+            if card_data:
+                card_object = Card(**card_data)
+                print('Processing ' + card_object.name)
+                if not self.TEST_MODE:
+                    card_object.save()
         return None
-
-    def searchCard(self, query, field):
-        card_query = get_query(query[0], field)
-        found_cards = Card.objects.filter(card_query)
-        return serializers.serialize('json', found_cards)
 
     def process_symbol(self, symbol):
             shorthand_cost = None

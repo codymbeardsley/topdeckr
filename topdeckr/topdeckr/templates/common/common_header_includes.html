@@ -23,7 +23,7 @@
 		var search_value = $('#card_name').val();
 		if(search_value !== '')
 		{
-			ajaxRequest('searchcard', {'query': search_value, 'field': 'name'}, handleCardSearchData);
+			ajaxRequest('search_cards', {'query': search_value, 'field': 'name', 'limit': 25}, handleCardSearchData);
 		}
 		return false;
 	}
@@ -34,16 +34,20 @@
 			cache: false,
 			success: handler});
 	}
-	function handleCardSearchData(data){
-		console.log(data);
-		if(data['error'] != "CARD_NOT_FOUND"){
-			var card_html = '';
-			card_html = "<img class='image'src='" + getWizardsSrc(data['name'])  + "'>";
-			for(card_property in data){
-				card_html += "<div class='property'><label class='" + card_property + "'>" + card_property + "</label><div class='" + card_property + "'>" + data[card_property] + "</div></div>";
-			}	
-			$('#right-panel .card-display').html(card_html);
-		}
+	function handleCardSearchData(result){
+        var cards_returned = JSON.parse(result).cards;
+        var card_display = $('.card-search');
+        $('.card-result').remove();
+        for(var card in cards_returned){
+            console.log(cards_returned[card])
+            card_display.append("<div class='card-result'>" +
+                    "<div class='name'>" +
+                    cards_returned[card].name +
+                    "</div>" +
+                    "<div class='type'>" +
+                    cards_returned[card].type +
+                    "</div></div>");
+        }
 	}
 </script>
 

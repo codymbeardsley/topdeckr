@@ -6,7 +6,7 @@ from django.conf.urls import patterns, include, url
 
 urlpatterns = patterns('',
 	url(r'^$', 'common.views.index'),
-    url(r'^request/(?P<operation>\w+)/', 'gatherer.views.gathererRequest'),
+    url(r'^request/(?P<operation>\w+)/', 'gatherer.views.gatherer_request'),
 
     # Examples:
     # url(r'^$', 'topdeckr.views.home', name='home'),

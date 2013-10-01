@@ -2,6 +2,9 @@ import re
 
 from django.db.models import Q
 
+from gatherer.models import Card
+from django.core import serializers
+import json
 def normalize_query(query_string,
                     findterms=re.compile(r'"([^"]+)"|(\S+)').findall,
                     normspace=re.compile(r'\s{2,}').sub):
@@ -35,3 +38,13 @@ def get_query(query_string, search_fields):
         else:
             query = query & or_query
     return query
+
+
+def search_cards(query, field, limit):
+    card_query = get_query(query[0], field)
+    cards_found = {'cards': []}
+    card_entries = Card.objects.filter(card_query)[:limit[0]]
+    for card in card_entries:
+        cards_found['cards'].append({'name': card.name, 'type': card.type[0]})
+    return json.dumps(cards_found)
+

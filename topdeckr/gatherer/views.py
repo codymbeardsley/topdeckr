@@ -1,46 +1,34 @@
 # Create your views here
-from django.utils import simplejson
-from django.shortcuts import render_to_response, redirect
-from django.template import RequestContext, Template
-from django.http import HttpResponse
 from gatherer.api import CardDatabase
-from django.views.decorators.csrf import csrf_exempt
-from re import escape
-
+from gatherer.search import search_cards
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
-from rest_framework import status
 
-def getCard(**data):
-    gatherer = CardDatabase()
-    result = gatherer.getAllCards()
-    if result == "CARD_NOT_FOUND":
-        return {"status": "error", "message": "Card not found."}
-    else:
-        return result
 
-def populateDatabase():
+def api_get_card(**data):
     gatherer = CardDatabase()
-    result = gatherer.getAllCards()
+    return gatherer.get_card(**data)
 
-def searchCard(**data):
+
+def api_populate_database():
     gatherer = CardDatabase()
-    result = gatherer.searchCard(**data)
+    return gatherer.get_all_cards()
+
+
+def api_search_cards(**data):
+    result = search_cards(**data)
     return result
 
+
 @api_view(['POST'])
-def gathererRequest(request, operation):
-    data = {}
-    try:
-        data = request.POST
-    except:
-        pass
+def gatherer_request(request, operation):
+    data = request.POST
 
-    if operation == "getcard":
-        return Response(getCard(**data))
+    if operation == "get_card":
+        return Response(api_get_card(**data))
 
-    if operation == "populatedatabase":
-        return Response(populateDatabase())
+    elif operation == "populate_database":
+        return Response(api_populate_database())
 
-    if operation == "searchcard":
-        return Response(searchCard(**data))
+    elif operation == "search_cards":
+        return Response(api_search_cards(**data))
