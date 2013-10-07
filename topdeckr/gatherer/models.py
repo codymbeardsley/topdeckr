@@ -1,4 +1,5 @@
 from django.db import models
+import ast
 
 class Card(models.Model):
     gatherer_id = models.IntegerField(null=True)
@@ -17,7 +18,9 @@ class Card(models.Model):
     flavor_text = models.TextField(null=True)
     loyalty = models.IntegerField(null=True)
 
-    def toDict(self):
+    def to_dict(self):
+        abilities = ", ".join(ast.literal_eval(self.keyword_abilities))
+        text = "<br/>".join(ast.literal_eval(self.text))
         return {'gid': self.gatherer_id, 
             'name': self.name,
             'power': self.power,
@@ -28,8 +31,11 @@ class Card(models.Model):
             'mana cost': self.mana_cost,
             'cmc': self.converted_mana_cost,
             'rarity': self.rarity,
-            'abilities': self.keyword_abilities,
-            'text': self.text,} 
+            'abilities': abilities,
+            'text': text,
+            'artist': self.artist,
+            'flavor text': self.flavor_text,
+            'loyalty': self.loyalty}
 
 class Set(models.Model):
     code = models.CharField(max_length=10, primary_key=True)

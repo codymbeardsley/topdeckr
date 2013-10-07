@@ -11,12 +11,19 @@ class CardDatabase(object):
     URL_BASE = 'http://magiccards.info'
     TEST_MODE = False
 
+    def get_card(self, id):
+        try:
+            return Card.objects.get(id=id[0]).to_dict()
+        except Card.DoesNotExist:
+            return {'status': 'NOT_FOUND'}
+
     def get_all_cards(self):
         set_list = self.get_all_sets()
         for set in set_list:
             try:
                 self.get_all_cards_in_set(set['code'])
             except:
+                print("Error encountered while processing: " + set['code'])
                 pass
 
     def get_all_sets(self):
@@ -48,7 +55,7 @@ class CardDatabase(object):
         soup = BeautifulSoup(request.content)
         cards_raw_data = soup.findAll('span')
         for card_raw_data in cards_raw_data:
-            card_data = None
+            card_data = {}
             card_data['name'] = card_raw_data.text
             card_text_line = card_raw_data.findNextSibling('p', {'class': 'ctext'})
             card_type_and_cost_line = card_text_line.findPreviousSibling('p')
@@ -102,6 +109,10 @@ class CardDatabase(object):
                     i = card_data['sub_type'].index(u'(Loyalty:')
                     card_data['loyalty'] = int(card_data['sub_type'][i + 1].strip(')'))
                     card_data['sub_type'] = card_data['sub_type'][:i]
+            if 'type' in card_data:
+                card_data['type'] = " ".join(card_data['type'])
+            if 'sub_type' in card_data:
+                card_data['sub_type'] = " ".join(card_data['sub_type'])
             if card_cost_line == u'':
                 card_data['mana_cost'], card_data['converted_mana_cost'] = ('', 0)
             elif '(' in card_cost_line:
@@ -115,7 +126,6 @@ class CardDatabase(object):
                 if not self.TEST_MODE:
                     card_object.save()
         return None
-
     def process_symbol(self, symbol):
             shorthand_cost = None
             if self.represents_int(symbol):
