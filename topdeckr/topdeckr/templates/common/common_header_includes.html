@@ -32,82 +32,81 @@
                 $(this).data('timer', setTimeout(search, 100));
         }
 
-		$('body').bind('keydown', function(event){
-            //Open the search panel with <left-arrow>
-            if( event.keyCode == 37 )
+		$('body').on('keydown', function(event){
+            switch(event.which)
             {
-                $('.right-pullout').fadeIn(100);
-                $('.right-pullout').addClass('extended');
-                $('#card-name').focus();
-                $('#card-name').bind('keyup', handleCardSearch);
-            }
-            //Close the last panel that was opened <esc>
-            if( event.keyCode == 27 )
-            {
-                var panel_to_affect = $('.sub-right-pullout').hasClass('extended') ? '.sub-right-pullout' : '.right-pullout';
-                $(panel_to_affect).fadeOut(100);
-                $(panel_to_affect).removeClass('extended');
-                if(panel_to_affect == ".right-pullout"){
-                    $('#card-name').blur().unbind('keyup', handleCardSearch).val('');
-                    $('.card-result').remove();
-                }
-                if(panel_to_affect == ".sub-right-pullout"){
-                    $('.card-information').empty();
-                }
-            }
-            //Open the detail search panel with <enter>
-            if( event.keyCode == 13 ){
-                event.preventDefault();
-            }
+                //Open the search panel with <left-arrow>
+                case 37:
+                    $('.right-pullout').fadeIn(100);
+                    $('.right-pullout').addClass('extended');
+                    $('#card-name').focus();
+                    $('#card-name').on('keyup', handleCardSearch);
+                    break;
+                //Close the last panel that was opened <esc>
+                case 27:
+                    var panel_to_affect = $('.sub-right-pullout').hasClass('extended') ? '.sub-right-pullout' : '.right-pullout';
+                    $(panel_to_affect).fadeOut(100);
+                    $(panel_to_affect).removeClass('extended');
+                    if(panel_to_affect == ".right-pullout"){
+                        $('#card-name').blur().off('keyup', handleCardSearch).val('');
+                        $('.card-result').remove();
+                    }
+                    if(panel_to_affect == ".sub-right-pullout"){
+                        $('.card-information').empty();
+                    }
+                    break;
+                //Open the detail search panel with <enter>
+                case 13:
+                    event.preventDefault();
+                    break;
 
-            if(event.keyCode == 40)
-            {
-                event.preventDefault();
-                if(!$('.card-result.selected').length){
-                    $('.card-result').each(function(index, element){
-                        $(element).addClass('selected');
-                        return false;
-                    });
-                }
-                else{
-                    var add_to_next = false;
-                    $('.card-result').each(function(index, element){
-                        if(add_to_next){
+                case 40:
+                    event.preventDefault();
+                    if(!$('.card-result.selected').length){
+                        $('.card-result').each(function(index, element){
                             $(element).addClass('selected');
                             return false;
-                        }
-                        if($(element).hasClass('selected'))
-                        {
-                            $(element).removeClass('selected');
-                            add_to_next = true;
-                        }
-                    });
-                }
-            }
+                        });
+                    }
+                    else{
+                        var add_to_next = false;
+                        $('.card-result').each(function(index, element){
+                            if(add_to_next){
+                                $(element).addClass('selected');
+                                return false;
+                            }
+                            if($(element).hasClass('selected'))
+                            {
+                                $(element).removeClass('selected');
+                                add_to_next = true;
+                            }
+                        });
+                    }
+                    break;
 
-            else if(event.keyCode == 38)
-            {
-                event.preventDefault();
-                if(!$('.card-result.selected').length){
-                    $($('.card-result').get().reverse()).each(function(index, element){
-                        $(element).addClass('selected');
-                        return false;
-                    });
-                }
-                else{
-                    var add_to_next = false;
-                    $($('.card-result').get().reverse()).each(function(index, element){
-                        if(add_to_next){
+                case 38:
+                    event.preventDefault();
+                    if(!$('.card-result.selected').length){
+                        $($('.card-result').get().reverse()).each(function(index, element){
                             $(element).addClass('selected');
                             return false;
-                        }
-                        if($(element).hasClass('selected'))
-                        {
-                            $(element).removeClass('selected');
-                            add_to_next = true;
-                        }
-                    });
-                }
+                        });
+                    }
+                    else{
+                        var add_to_next = false;
+                        $($('.card-result').get().reverse()).each(function(index, element){
+                            if(add_to_next){
+                                $(element).addClass('selected');
+                                return false;
+                            }
+                            if($(element).hasClass('selected'))
+                            {
+                                $(element).removeClass('selected');
+                                add_to_next = true;
+                            }
+                        });
+                    }
+                    break;
             }
 		});
 	});
@@ -131,7 +130,12 @@
 	}
 
     function handleGetCard(result){
-        $('.card-information').html(result.name);
+        var card_info_html = '';
+
+        card_info_html += '<div class="name">' + result.name + '</div>';
+        card_info_html += '<img class="image" src="' + getWizardsSrc(result.name) + '" />';
+
+        $('.card-information').html(card_info_html);
     }
 
     function processColor(mana_cost){
@@ -165,6 +169,7 @@
 
 	function handleCardSearchData(result){
         var cards_returned = JSON.parse(result).cards;
+        console.log(cards_returned);
         var card_display = $('.card-search');
         $('.card-result').remove();
         for(var card in cards_returned){
@@ -175,6 +180,9 @@
                     "</div>" +
                     "<div class='type'>" +
                     cards_returned[card].type +
+                    "</div>" +
+                    "<div class='set-name'>" +
+                    cards_returned[card].set_name +
                     "</div>" +
                     "</div>").fadeIn(100);
         }

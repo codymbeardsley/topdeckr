@@ -54,6 +54,7 @@ class CardDatabase(object):
         request = requests.get(self.URL_BASE + query)
         soup = BeautifulSoup(request.content)
         cards_raw_data = soup.findAll('span')
+        set_entry = Set.objects.get(code=set_code)
         for card_raw_data in cards_raw_data:
             card_data = {}
             card_data['name'] = card_raw_data.text
@@ -66,8 +67,7 @@ class CardDatabase(object):
             card_data['flavor_text'] = unicode(card_flavor_text_line.text)
             card_data['artist'] = unicode(card_art_line.text).replace('Illus. ', '')
             card_data['text'] = [rl for rl in card_text_line.find('b').contents if isinstance(rl, NavigableString)]
-            card_data['expansion'] = set_code
-            
+            card_data['set'] = set_entry
             card_keyword_abilities = []
             for card_text_area in card_data['text']:
                 keyword_abilities_preprocessed = card_text_area.split(',')
@@ -122,7 +122,7 @@ class CardDatabase(object):
                 card_data['mana_cost'], card_data['converted_mana_cost'] = (card_cost_line, 0)
             if card_data:
                 card_object = Card(**card_data)
-                print('Processing ' + card_object.name)
+                print('Processed ' + card_object.name)
                 if not self.TEST_MODE:
                     card_object.save()
         return None

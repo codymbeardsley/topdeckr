@@ -45,6 +45,7 @@ def search_cards(query, field, limit):
     cards_found = {'cards': []}
     card_entries = Card.objects.filter(card_query)[:limit[0]]
     for card in card_entries:
-        cards_found['cards'].append({'id': card.id, 'name': card.name, 'type': card.type, 'mana_cost': card.mana_cost})
+        cards_found['cards'].append({'id': card.id, 'name': card.name, 'set_name': card.set.name, 'set_code': card.set.code, 'type': card.type,
+                                     'mana_cost': card.mana_cost})
     return json.dumps(cards_found)
 
